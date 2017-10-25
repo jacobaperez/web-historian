@@ -16,6 +16,28 @@ exports.serveAssets = function(res, asset, callback) {
   // css, or anything that doesn't change often.)
 };
 
-
+exports.sendResponse = function(response, content, statusCode = 200, urls) {
+  if (statusCode === 200) {
+    fs.readFile(content, 'utf8', (err, data) => {
+      if (err) {
+        response.writeHead(404, exports.headers);
+        response.end();
+      } else {
+        response.statusCode = statusCode;
+        response.writeHead(statusCode, exports.headers);
+        console.log("GET DATA", data);
+        response.write(data);
+        response.end();
+      }
+    });
+  }
+  if (statusCode === 302) {
+    archive.addUrlToList(urls, function(data) {
+      response.writeHead(statusCode, exports.headers);
+      response.write(data);
+      response.end();
+    })
+  }
+};
 
 // As you progress, keep thinking about what helper functions you can put here!
