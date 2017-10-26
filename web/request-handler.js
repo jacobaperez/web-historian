@@ -18,8 +18,7 @@ exports.handleRequest = function (req, res) {
       data += chunk;
     });
     req.on('end', function() {
-      console.log('finished data', data);
-      httpHelpers.sendResponse(res, archive.paths.list, 302, data.slice(4));
+      httpHelpers.sendResponse(res, archive.paths.index, 302, data.slice(4));
     });
   }
 };

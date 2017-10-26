@@ -45,7 +45,8 @@ exports.isUrlInList = function(url, callback) {
 exports.addUrlToList = function(url, callback) {
   fs.appendFile(exports.paths.list, (url + '\n'), 'utf8', (err) => {
     if(err) throw err;
-    callback(exports.paths.list);
+    var u = exports.paths.archivedSites + '/' + url;
+    callback(u);
   });
 };
 
@@ -60,11 +61,10 @@ exports.downloadUrls = function(urls) {
   urls.forEach(function (url) {
     if(exports.isUrlArchived(url, function (bool){
       if (!bool) {
-        fs.appendFile(exports.paths.archivedSites + '/' + url, (err, dir) => {
+        fs.appendFile(exports.paths.archivedSites + '/' + url, (err) => {
           if(err) throw err;
-          console.log(dir);
         });
       }
-    }) );
+    }));
   });
 };
