@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var _ = require('underscore');
+var http = require('http');
 
 /*
  * You will need to reuse the same paths many times over in the course of this sprint.
@@ -13,7 +14,8 @@ exports.paths = {
   siteAssets: path.join(__dirname, '../web/public'),
   archivedSites: path.join(__dirname, '../archives/sites'),
   list: path.join(__dirname, '../archives/sites.txt'),
-  index: path.join(__dirname, '../web/public/index.html')
+  index: path.join(__dirname, '../web/public/index.html'),
+  loading: path.join(__dirname, '../web/public/loading.html')
 };
 
 // Used for stubbing paths for tests, do not modify
@@ -43,10 +45,17 @@ exports.isUrlInList = function(url, callback) {
 };
 
 exports.addUrlToList = function(url, callback) {
-  fs.appendFile(exports.paths.list, (url + '\n'), 'utf8', (err) => {
-    if(err) throw err;
-    var u = exports.paths.archivedSites + '/' + url;
-    callback(u);
+  exports.isUrlInList(url, function (bool) {
+    if (bool) {
+      var u = exports.paths.archivedSites + '/' + url;
+      callback(u);
+    } else {
+      fs.appendFile(exports.paths.list, (url + '\n'), 'utf8', (err) => {
+        if(err) throw err;
+        var u = exports.paths.archivedSites + '/' + url;
+        callback(u);
+      });
+    }
   });
 };
 
@@ -59,12 +68,22 @@ exports.isUrlArchived = function(url, callback) {
 
 exports.downloadUrls = function(urls) {
   urls.forEach(function (url) {
-    if(exports.isUrlArchived(url, function (bool){
-      if (!bool) {
-        fs.appendFile(exports.paths.archivedSites + '/' + url, (err) => {
-          if(err) throw err;
-        });
-      }
-    }));
+    if (url !== '') {
+      if(exports.isUrlArchived(url, function (bool){
+        if (!bool) {
+          http.get('http://www.' + url, (response) => {
+            var body = '';
+            response.on('data', function (chunk) {
+              body += chunk;
+            });
+            response.on('end', function () {
+              fs.appendFile(exports.paths.archivedSites + '/' + url, body, (err) => {
+                if(err) throw err;
+              });
+            });
+          });
+        }
+      }));
+    }
   });
 };

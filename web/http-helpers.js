@@ -1,6 +1,7 @@
 var path = require('path');
 var fs = require('fs');
 var archive = require('../helpers/archive-helpers');
+var htmlFetcher = require('../workers/htmlfetcher.js');
 
 exports.headers = {
   'access-control-allow-origin': '*',
@@ -16,6 +17,11 @@ exports.serveAssets = function(res, asset, callback) {
   // css, or anything that doesn't change often.)
 };
 
+exports.sendRedirect = function (response, location, status = 302) {
+  response.writeHead(status, {Location: location});
+  response.end();
+};
+
 exports.sendResponse = function(response, content, statusCode = 200, urls) {
   if (statusCode === 200) {
     fs.readFile(content, 'utf8', (err, data) => {
@@ -25,29 +31,21 @@ exports.sendResponse = function(response, content, statusCode = 200, urls) {
       } else {
         response.statusCode = statusCode;
         response.writeHead(statusCode, exports.headers);
-        response.write(data);
-        response.end();
+        response.end(data);
       }
     });
   }
   if (statusCode === 302) {
-    archive.addUrlToList(urls, function(data) {
-      response.writeHead(statusCode, exports.headers);
-      //response.write(data
-      console.log(data);
-      fs.readFile(data, 'utf8', (err, output) => {
-        if (err) {
-          response.writeHead(404, exports.headers);
-          response.end();
-        } else {
-          response.statusCode = statusCode;
-          response.writeHead(statusCode, exports.headers);
-          //response.write(output);
-          response.end();
-        }
-      });
-      response.end();
-    })
+    archive.isUrlArchived(urls, function (bool) {
+      htmlFetcher.getHTML();
+      if(bool) {
+        exports.sendRedirect(response, urls, statusCode);
+      } else {
+        archive.addUrlToList(urls, function() {
+          exports.sendRedirect(response, '/loading.html', statusCode);
+        });
+      }
+    });
   }
 };
 
